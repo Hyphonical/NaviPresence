@@ -86,7 +86,6 @@ def GetCurrentSong():
 				Album = Song.get('album', 'Unknown')
 				CoverArtId = Song.get('coverArt', None)
 				Duration = Song.get('duration', 0)
-				Logger.info(f'Currently playing: {Title} by {Artist} from {Album}')
 
 				# 🎨 Build cover art URL for external asset processing
 				CoverUrl = None
@@ -109,7 +108,6 @@ def GetCurrentSong():
 					'duration': Duration,
 				}
 			else:
-				Logger.info('No song currently playing.')
 				return None
 		else:
 			Logger.error('Error: API response not ok.')
@@ -152,6 +150,9 @@ if __name__ == '__main__':
 
 				# 🆕 New track detected; prepare activity but throttle sending
 				if TrackKey != LastSeenTrackKey:
+					Logger.info(
+						f'Currently playing: {SongData["title"]} by {SongData["artist"]} from {SongData["album"]}'
+					)
 					StartMs = int(time.time() * 1000)
 					EndMs = (
 						StartMs + (SongData['duration'] * 1000) if SongData['duration'] else None
@@ -175,6 +176,7 @@ if __name__ == '__main__':
 			else:
 				# 🛑 Nothing playing
 				if WasPlaying:
+					Logger.info('No song currently playing.')
 					Rpc.ClearActivity()
 					Logger.info('Discord rich presence cleared.')
 				LastSeenTrackKey = None
@@ -201,4 +203,3 @@ if __name__ == '__main__':
 	except KeyboardInterrupt:
 		Rpc.ClearActivity()
 		Rpc.Close()
-		Logger.info('Exiting gracefully.')
