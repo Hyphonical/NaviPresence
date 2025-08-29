@@ -1,10 +1,10 @@
 ---
 services:
-  navicord:
+  navipresence:
     # 🖼️ Image published by GitHub Actions
-    image: ghcr.io/hyphonical/navicord:latest
+    image: ghcr.io/hyphonical/navipresence:latest
     # 🐳 Container name
-    container_name: Navicord
+    container_name: NaviPresence
     restart: unless-stopped
     # 🔑 Pass runtime configuration from your .env file
     env_file:

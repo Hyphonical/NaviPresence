@@ -1,4 +1,4 @@
-# Navicord 🎵
+# NaviPresence 🎵
 
 A sleek Discord Rich Presence integration for Navidrome, displaying your currently playing music with album art and timestamps. Built with Python for simplicity and style.
 
@@ -20,8 +20,8 @@ A sleek Discord Rich Presence integration for Navidrome, displaying your current
 
 1. **Clone or download** the repository:
    ```bash
-   git clone https://github.com/Hyphonical/Navicord.git
-   cd navicord
+   git clone https://github.com/Hyphonical/NaviPresence.git
+   cd navipresence
    ```
 
 2. **Install dependencies**:
@@ -80,7 +80,7 @@ The app will:
 ## 📁 Project Structure
 
 ```
-Navicord/
+NaviPresence/
 ├── Main.py              # Main application logic
 ├── Config.py            # Configuration constants
 ├── Utils/
