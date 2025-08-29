@@ -66,7 +66,7 @@ def GetCurrentSong():
 	Query = urllib.parse.urlencode(Params)
 	Url = f'{Host}/rest/getNowPlaying.view?{Query}'
 
-	Logger.debug(f'API URL: {Url}')
+	# Logger.debug(f'API URL: {Url}')  # ⚠️ Warning, exposes username and password
 
 	try:
 		# 🔗 Make the request
@@ -132,13 +132,13 @@ if __name__ == '__main__':
 	Logger.info('Discord RPC initialized.')
 
 	# 🕒 Keep stable timestamps for the current song (prevent resets)
-	LastSeenTrackKey = None  # 👀 Last observed track from API
+	LastSeenTrackKey = None    # 👀 Last observed track from API
 	LastPushedTrackKey = None  # 📤 Last track pushed to RPC
 	StartMs = None
 	EndMs = None
 	WasPlaying = False
-	LastRpcUpdateMs = 0  # ⏱️ Throttle RPC updates
-	PendingActivity = None  # 📦 Prepared activity awaiting throttle window
+	LastRpcUpdateMs = 0        # ⏱️ Throttle RPC updates
+	PendingActivity = None     # 📦 Prepared activity awaiting throttle window
 
 	try:
 		while True:
