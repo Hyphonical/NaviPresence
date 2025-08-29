@@ -3,6 +3,7 @@ import urllib.request
 import urllib.parse
 import time
 import json
+import os
 
 # 📥 Custom modules
 from Config import ApiVersion, ClientName, CoverArtSize, DefaultCoverUrl, UpdateInterval
@@ -12,17 +13,31 @@ from Utils.RPC import RPC
 
 # 🌱 Load environment variables from .env file
 def LoadEnv():
-	EnvDict = {}
-	try:
-		with open('.env', 'r') as File:
-			for Line in File:
-				if '=' in Line:
-					Key, Value = Line.strip().split('=', 1)
-					EnvDict[Key] = Value
-	except FileNotFoundError:
-		Logger.error('Error: .env file not found.')
-		return None
-	return EnvDict
+    EnvDict = {}
+    try:
+        with open('.env', 'r') as File:
+            for Line in File:
+                if '=' in Line:
+                    Key, Value = Line.strip().split('=', 1)
+                    EnvDict[Key] = Value
+        return EnvDict
+    except FileNotFoundError:
+        # 🔄 Fallback to process environment when .env is missing
+        Keys = [
+            'NAVIDROME_HOST',
+            'NAVIDROME_USER',
+            'NAVIDROME_PASSWORD',
+            'DISCORD_USER_TOKEN',
+            'DISCORD_BOT_APPLICATION_ID',
+        ]
+        for Key in Keys:
+            Value = os.environ.get(Key)
+            if Value:
+                EnvDict[Key] = Value
+        if not EnvDict:
+            Logger.error('Error: .env file not found and no environment variables set.')
+            return None
+        return EnvDict
 
 
 # 🌐 Fetch currently playing song from Navidrome
