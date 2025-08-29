@@ -1,5 +1,5 @@
 # 📦 Base image
-FROM python:3.13-slim
+FROM python:3.13-alpine
 
 # 🔧 Environment
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -16,7 +16,7 @@ RUN pip install --no-cache-dir -r /app/requirement.txt
 COPY . /app
 
 # 👤 Non-root
-RUN useradd -m appuser && chown -R appuser:appuser /app
+RUN adduser -D appuser && chown -R appuser:appuser /app
 USER appuser
 
 # 🚀 Run
