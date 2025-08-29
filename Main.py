@@ -6,38 +6,45 @@ import json
 import os
 
 # 📥 Custom modules
-from Config import ApiVersion, ClientName, CoverArtSize, DefaultCoverUrl, UpdateInterval
+from Config import (
+	ApiVersion,
+	ApiPollInterval,
+	ClientName,
+	CoverArtSize,
+	DefaultCoverUrl,
+	RpcMinUpdateInterval,
+)
 from Utils.Logger import Logger
 from Utils.RPC import RPC
 
 
 # 🌱 Load environment variables from .env file
 def LoadEnv():
-    EnvDict = {}
-    try:
-        with open('.env', 'r') as File:
-            for Line in File:
-                if '=' in Line:
-                    Key, Value = Line.strip().split('=', 1)
-                    EnvDict[Key] = Value
-        return EnvDict
-    except FileNotFoundError:
-        # 🔄 Fallback to process environment when .env is missing
-        Keys = [
-            'NAVIDROME_HOST',
-            'NAVIDROME_USER',
-            'NAVIDROME_PASSWORD',
-            'DISCORD_USER_TOKEN',
-            'DISCORD_BOT_APPLICATION_ID',
-        ]
-        for Key in Keys:
-            Value = os.environ.get(Key)
-            if Value:
-                EnvDict[Key] = Value
-        if not EnvDict:
-            Logger.error('Error: .env file not found and no environment variables set.')
-            return None
-        return EnvDict
+	EnvDict = {}
+	try:
+		with open('.env', 'r') as File:
+			for Line in File:
+				if '=' in Line:
+					Key, Value = Line.strip().split('=', 1)
+					EnvDict[Key] = Value
+		return EnvDict
+	except FileNotFoundError:
+		# 🔄 Fallback to process environment when .env is missing
+		Keys = [
+			'NAVIDROME_HOST',
+			'NAVIDROME_USER',
+			'NAVIDROME_PASSWORD',
+			'DISCORD_USER_TOKEN',
+			'DISCORD_BOT_APPLICATION_ID',
+		]
+		for Key in Keys:
+			Value = os.environ.get(Key)
+			if Value:
+				EnvDict[Key] = Value
+		if not EnvDict:
+			Logger.error('Error: .env file not found and no environment variables set.')
+			return None
+		return EnvDict
 
 
 # 🌐 Fetch currently playing song from Navidrome
@@ -127,26 +134,31 @@ if __name__ == '__main__':
 	Logger.info('Discord RPC initialized.')
 
 	# 🕒 Keep stable timestamps for the current song (prevent resets)
-	LastTrackKey = None
+	LastSeenTrackKey = None  # 👀 Last observed track from API
+	LastPushedTrackKey = None  # 📤 Last track pushed to RPC
 	StartMs = None
 	EndMs = None
 	WasPlaying = False
+	LastRpcUpdateMs = 0  # ⏱️ Throttle RPC updates
+	PendingActivity = None  # 📦 Prepared activity awaiting throttle window
 
 	try:
 		while True:
 			SongData = GetCurrentSong()
+
 			if SongData:
 				# 🔑 Identify the track (no unique ID in sample, so use tuple)
 				TrackKey = f'{SongData["title"]}|{SongData["artist"]}|{SongData["album"]}|{SongData["duration"]}'
-				if TrackKey != LastTrackKey:
-					# ⏱️ Only set once when the track changes
+
+				# 🆕 New track detected; prepare activity but throttle sending
+				if TrackKey != LastSeenTrackKey:
 					StartMs = int(time.time() * 1000)
 					EndMs = (
 						StartMs + (SongData['duration'] * 1000) if SongData['duration'] else None
 					)
-					LastTrackKey = TrackKey
+					LastSeenTrackKey = TrackKey
 
-					ActivityData = {
+					PendingActivity = {
 						'name': SongData['title'],
 						'type': 2,  # 🎧 Listening
 						'state': f'by {SongData["artist"]}',
@@ -159,23 +171,33 @@ if __name__ == '__main__':
 						if EndMs
 						else {'start': StartMs},
 					}
-					Rpc.SendActivity(ActivityData)
-					Logger.info('Discord rich presence updated.')
-				else:
-					# 🔁 Same track; do not resend or reset timestamps
-					pass
 				WasPlaying = True
 			else:
+				# 🛑 Nothing playing
 				if WasPlaying:
 					Rpc.ClearActivity()
 					Logger.info('Discord rich presence cleared.')
-				# 🔄 Reset state when nothing is playing
-				LastTrackKey = None
+				LastSeenTrackKey = None
+				LastPushedTrackKey = None
 				StartMs = None
 				EndMs = None
+				PendingActivity = None
 				WasPlaying = False
 
-			time.sleep(UpdateInterval)
+			# 🚦 Throttle: only push to RPC if changed and min interval passed
+			NowMs = int(time.time() * 1000)
+			if (
+				PendingActivity
+				and LastSeenTrackKey is not None
+				and LastSeenTrackKey != LastPushedTrackKey
+				and (NowMs - LastRpcUpdateMs) >= (RpcMinUpdateInterval * 1000)
+			):
+				Rpc.SendActivity(PendingActivity)
+				LastPushedTrackKey = LastSeenTrackKey
+				LastRpcUpdateMs = NowMs
+				Logger.info('Discord rich presence updated.')
+
+			time.sleep(ApiPollInterval)
 	except KeyboardInterrupt:
 		Rpc.ClearActivity()
 		Rpc.Close()
